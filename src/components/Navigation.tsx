@@ -15,9 +15,16 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
 import MenuIcon from '@mui/icons-material/Menu';
 import Toolbar from '@mui/material/Toolbar';
+import HomeIcon from '@mui/icons-material/Home';
 
 const drawerWidth = 240;
-const navItems = [['Expertise', 'expertise'], ['History', 'history'], ['Projects', 'projects'], ['Contact', 'contact']];
+const navItems = [
+  ['Home', 'main'], 
+  ['Expertise', 'expertise'], 
+  ['History', 'history'], 
+  ['Projects', 'projects'], 
+  ['Contact', 'contact']
+];
 
 function Navigation({parentToChild, modeChange}: any) {
 
@@ -25,6 +32,7 @@ function Navigation({parentToChild, modeChange}: any) {
 
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
   const [scrolled, setScrolled] = useState<boolean>(false);
+  const [activeSection, setActiveSection] = useState<string>('main');
 
   const handleDrawerToggle = () => {
     setMobileOpen((prevState) => !prevState);
@@ -34,12 +42,25 @@ function Navigation({parentToChild, modeChange}: any) {
     const handleScroll = () => {
       const navbar = document.getElementById("navigation");
       if (navbar) {
-        const scrolled = window.scrollY > navbar.clientHeight;
+        const scrolled = window.scrollY > 50;
         setScrolled(scrolled);
+      }
+
+      // Determine active section based on scroll position
+      const sections = ['main', 'expertise', 'history', 'projects', 'contact'];
+      const scrollPosition = window.scrollY + 100;
+
+      for (let i = sections.length - 1; i >= 0; i--) {
+        const section = document.getElementById(sections[i]);
+        if (section && section.offsetTop <= scrollPosition) {
+          setActiveSection(sections[i]);
+          break;
+        }
       }
     };
 
     window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Check initial position
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
@@ -47,25 +68,58 @@ function Navigation({parentToChild, modeChange}: any) {
   }, []);
 
   const scrollToSection = (section: string) => {
-    console.log(section)
-    const expertiseElement = document.getElementById(section);
-    if (expertiseElement) {
-      expertiseElement.scrollIntoView({ behavior: 'smooth' });
-      console.log('Scrolling to:', expertiseElement);  // Debugging: Ensure the element is found
+    if (section === 'main') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setActiveSection('main');
     } else {
-      console.error('Element with id "expertise" not found');  // Debugging: Log error if element is not found
+      const element = document.getElementById(section);
+      if (element) {
+        const offset = 64; // Account for fixed navbar height
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - offset;
+        
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+        setActiveSection(section);
+      }
+    }
+    // Close mobile menu after navigation
+    if (mobileOpen) {
+      setMobileOpen(false);
     }
   };
 
   const drawer = (
-    <Box className="navigation-bar-responsive" onClick={handleDrawerToggle} sx={{ textAlign: 'center' }}>
-      <p className="mobile-menu-top"><ListIcon/>Menu</p>
+    <Box className="navigation-bar-responsive" sx={{ textAlign: 'center' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', gap: '8px' }}>
+        <ListIcon />
+        <p className="mobile-menu-top" style={{ margin: 0 }}>Menu</p>
+      </Box>
       <Divider />
       <List>
         {navItems.map((item) => (
           <ListItem key={item[0]} disablePadding>
-            <ListItemButton sx={{ textAlign: 'center' }} onClick={() => scrollToSection(item[1])}>
-              <ListItemText primary={item[0]} />
+            <ListItemButton 
+              sx={{ 
+                textAlign: 'center',
+                backgroundColor: activeSection === item[1] ? 'rgba(80, 0, 202, 0.1)' : 'transparent',
+                '&:hover': {
+                  backgroundColor: 'rgba(80, 0, 202, 0.15)',
+                }
+              }} 
+              onClick={() => scrollToSection(item[1])}
+            >
+              <ListItemText 
+                primary={item[0]} 
+                primaryTypographyProps={{
+                  style: {
+                    fontWeight: activeSection === item[1] ? 'bold' : 'normal',
+                    color: activeSection === item[1] ? '#5000ca' : '#0d1116'
+                  }
+                }}
+              />
             </ListItemButton>
           </ListItem>
         ))}
@@ -76,28 +130,97 @@ function Navigation({parentToChild, modeChange}: any) {
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
-      <AppBar component="nav" id="navigation" className={`navbar-fixed-top${scrolled ? ' scrolled' : ''}`}>
-        <Toolbar className='navigation-bar'>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          {mode === 'dark' ? (
-            <LightModeIcon onClick={() => modeChange()}/>
-          ) : (
-            <DarkModeIcon onClick={() => modeChange()}/>
-          )}
-          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-            {navItems.map((item) => (
-              <Button key={item[0]} onClick={() => scrollToSection(item[1])} sx={{ color: '#fff' }}>
-                {item[0]}
-              </Button>
-            ))}
+      <AppBar 
+        component="nav" 
+        id="navigation" 
+        className={`navbar-fixed-top${scrolled ? ' scrolled' : ''}`}
+        sx={{
+          backgroundColor: mode === 'dark' 
+            ? (scrolled ? 'rgba(13, 17, 22, 0.95)' : '#0d1116')
+            : (scrolled ? 'rgba(248, 249, 250, 0.95)' : '#f8f9fa'),
+          backdropFilter: scrolled ? 'blur(10px)' : 'none',
+          boxShadow: scrolled 
+            ? (mode === 'dark' ? '0 2px 20px rgba(0, 0, 0, 0.3)' : '0 2px 20px rgba(0, 0, 0, 0.1)')
+            : 'none',
+          transition: 'all 0.3s ease-in-out'
+        }}
+      >
+        <Toolbar className='navigation-bar' sx={{ justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ mr: 2, display: { sm: 'none' } }}
+            >
+              <MenuIcon />
+            </IconButton>
+            <Button
+              onClick={() => scrollToSection('main')}
+              sx={{
+                color: mode === 'dark' ? '#fff' : '#0d1116',
+                fontSize: '1.2rem',
+                fontWeight: 'bold',
+                textTransform: 'none',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  color: '#5000ca',
+                  backgroundColor: 'transparent',
+                  transform: 'scale(1.05)'
+                }
+              }}
+              startIcon={<HomeIcon />}
+            >
+              Hassnain Ali
+            </Button>
+          </Box>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 0.5 }}>
+              {navItems.map((item) => (
+                <Button 
+                  key={item[0]} 
+                  onClick={() => scrollToSection(item[1])} 
+                  sx={{ 
+                    color: activeSection === item[1] ? '#5000ca' : (mode === 'dark' ? '#fff' : '#0d1116'),
+                    fontWeight: activeSection === item[1] ? 'bold' : 'normal',
+                    textTransform: 'none',
+                    fontSize: '1rem',
+                    padding: '6px 16px',
+                    borderRadius: '20px',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      color: '#5000ca',
+                      backgroundColor: 'rgba(80, 0, 202, 0.1)',
+                      transform: 'translateY(-2px)'
+                    }
+                  }}
+                >
+                  {item[0]}
+                </Button>
+              ))}
+            </Box>
+            <IconButton
+              onClick={() => modeChange()}
+              sx={{
+                color: mode === 'dark' ? '#fff' : '#0d1116',
+                marginLeft: 2,
+                padding: '8px',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  backgroundColor: mode === 'dark' ? 'rgba(80, 0, 202, 0.2)' : 'rgba(80, 0, 202, 0.1)',
+                  transform: 'rotate(180deg)'
+                }
+              }}
+              aria-label="toggle theme"
+            >
+              {mode === 'dark' ? (
+                <LightModeIcon />
+              ) : (
+                <DarkModeIcon />
+              )}
+            </IconButton>
           </Box>
         </Toolbar>
       </AppBar>
